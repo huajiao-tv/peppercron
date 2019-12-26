@@ -1,0 +1,33 @@
+version: "3"
+
+services:
+  etcd:
+    container_name: peppercron_etcd
+    image: etcd:v3.3.10
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.etcd
+    command:
+      [
+        "--listen-client-urls",
+        "http://0.0.0.0:2379",
+        "--advertise-client-urls",
+        "http://etcd:2379",
+      ]
+
+  peppercron:
+    image: peppercron
+    build:
+      context: ../
+      dockerfile: ./deploy/docker/Dockerfile.peppercron
+    ports:
+      - "12306"
+      - "12307"
+    depends_on:
+      - etcd
+    entrypoint:
+      [
+        "/bin/sh",
+        "-c",
+        "/data/peppercron/peppercron -e http://etcd:2379 -n $$HOSTNAME",
+      ]

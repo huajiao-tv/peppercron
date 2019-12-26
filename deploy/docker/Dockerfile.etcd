@@ -1,0 +1,13 @@
+FROM alpine:latest
+
+ENV VERSION v3.3.10
+
+RUN wget -qO- https://github.com/etcd-io/etcd/releases/download/${VERSION}/etcd-${VERSION}-linux-amd64.tar.gz | tar -C /var -xz
+
+EXPOSE 2379 2380
+
+WORKDIR /var/etcd-${VERSION}-linux-amd64
+
+ENV ETCDCTL_API 3
+
+ENTRYPOINT ["./etcd"]
