@@ -1,3 +1,11 @@
+<p align="center">
+    <a href="https://hub.docker.com/r/huajiao/peppercron" alt="Activity">
+        <img src="https://img.shields.io/docker/cloud/automated/huajiao/peppercron.svg" /></a>
+    <a href="https://hub.docker.com/r/huajiao/peppercron" alt="Activity">
+        <img src="https://img.shields.io/docker/cloud/build/huajiao/peppercron.svg" /></a>
+    <img src="https://img.shields.io/github/license/huajiao-tv/peppercron.svg" />
+</p>
+
 # PepperCron - Distributed job scheduling system
 
 PepperCron is a distributed cron job management system
