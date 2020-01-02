@@ -49,27 +49,8 @@ type Setting struct {
 
 func getRemoteConfig(ctx context.Context) error {
 	setting := Setting{
-		SettingGlobal: SettingGlobal{
-			FrontPort: DefaultFrontPort,
-			AdminPort: DefaultAdminPort,
-			JobResultStorage: &SettingJobResultStorage{
-				Type:     "pg",
-				Addr:     "gptest01.bjyt.gpdb.soft.360.cn:5432",
-				User:     "pepper_cron",
-				Auth:     "0900b81f7ce06cfa",
-				Database: "pepper_cron",
-			},
-			JobResultTimesStorage: &SettingJobResultStorage{
-				Type:        "redis",
-				Addr:        "10.142.97.30:1554",
-				Auth:        "79b42b7404e2d3cc",
-				MaxConnNum:  50,
-				IdleTimeout: 3 * time.Second,
-			},
-		},
-		SettingNode: SettingNode{
-			Tags: DefaultTags,
-		},
+		SettingGlobal: SettingGlobal{},
+		SettingNode: SettingNode{},
 	}
 
 	nodeKey := fmt.Sprintf(logic.NodeConfig, NodeID)

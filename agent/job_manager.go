@@ -40,8 +40,8 @@ func NewJobManager(ctx context.Context) *JobManager {
 	var err error
 	if config.RemoteConf().JobResultStorage != nil {
 		switch config.RemoteConf().JobResultStorage.Type {
-		case "pg":
-			storage, err = NewJobResultPGStorage(
+		case "mysql":
+			storage, err = NewJobResultMySQLStorage(
 				ctx,
 				config.RemoteConf().JobResultStorage.Addr,
 				config.RemoteConf().JobResultStorage.User,

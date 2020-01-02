@@ -8,10 +8,8 @@ import (
 	"sync"
 	"time"
 
-	// PG 数据库支持
-	_ "github.com/lib/pq"
-
 	"github.com/go-redis/redis"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/huajiao-tv/peppercron/logic"
 	"github.com/huajiao-tv/peppercron/util"
 )
@@ -114,18 +112,18 @@ func (s *JobResultTimesRedisStorage) Put(data *logic.AgentExecutionResult) {
 	s.redis.Expire(timesNodeDateKey, 24*time.Hour)
 }
 
-// JobResultPGStorage 使用 PG 存储 Job 结果的对象
-type JobResultPGStorage struct {
+// JobResultMySQLStorage 使用 MySQL 存储 Job 结果的对象
+type JobResultMySQLStorage struct {
 	db         *sql.DB
 	dataCh     chan *logic.AgentExecutionResult
 	datas      []*logic.AgentExecutionResult
 	datasMutex sync.Mutex
 }
 
-// NewJobResultPGStorage Job 执行日志 PG 存储
-func NewJobResultPGStorage(ctx context.Context, host, user, pass, dbname string) (*JobResultPGStorage, error) {
-	connStr := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable", user, pass, host, dbname)
-	db, err := sql.Open("postgres", connStr)
+// JobResultMySQLStorage Job 执行日志 MySQL 存储
+func NewJobResultMySQLStorage(ctx context.Context, host, user, pass, dbname string) (*JobResultMySQLStorage, error) {
+	connStr := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local", user, pass, host, dbname)
+	db, err := sql.Open("mysql", connStr)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +134,7 @@ func NewJobResultPGStorage(ctx context.Context, host, user, pass, dbname string)
 	db.SetMaxIdleConns(5)
 	db.SetMaxOpenConns(50)
 
-	s := &JobResultPGStorage{
+	s := &JobResultMySQLStorage{
 		db:         db,
 		dataCh:     make(chan *logic.AgentExecutionResult, 10000),
 		datas:      make([]*logic.AgentExecutionResult, 0, 1000),
@@ -148,21 +146,20 @@ func NewJobResultPGStorage(ctx context.Context, host, user, pass, dbname string)
 }
 
 // Put 将日志丢到队列
-func (s *JobResultPGStorage) Put(data *logic.AgentExecutionResult) {
+func (s *JobResultMySQLStorage) Put(data *logic.AgentExecutionResult) {
 	select {
 	case s.dataCh <- data:
 	default:
-		util.Log.Error("JobResultPGStorage", "Put data failed", "channel full")
+		util.Log.Error("JobResultMySQLStorage", "Put data failed", "channel full")
 	}
 }
 
-func (s *JobResultPGStorage) batchInsert(datas []*logic.AgentExecutionResult) {
+func (s *JobResultMySQLStorage) batchInsert(datas []*logic.AgentExecutionResult) {
 	sqlStr := `INSERT INTO job_result(job_name, dispatch_id, group_id, job_completed, agent_node, started_at, finished_at, status, output_data) VALUES`
 	vals := []interface{}{}
 
 	for _, data := range datas {
-		i := len(vals)
-		sqlStr += fmt.Sprintf("($%v, $%v, $%v, $%v, $%v, $%v, $%v, $%v, $%v),", i+1, i+2, i+3, i+4, i+5, i+6, i+7, i+8, i+9)
+		sqlStr += "(?, ?, ?, ?, ?, ?, ?, ?, ?),"
 		vals = append(vals, data.JobName, data.DispatchID, data.GroupID, data.JobCompleted, data.AgentNode, data.StartedAt.UTC(), data.FinishedAt.UTC(), data.Status, data.Output)
 	}
 
@@ -170,12 +167,12 @@ func (s *JobResultPGStorage) batchInsert(datas []*logic.AgentExecutionResult) {
 
 	_, err := s.db.Exec(sqlStr, vals...)
 	if err != nil {
-		util.Log.Error("JobResultPGStorage", "Batch insert data failed", sqlStr, err)
+		util.Log.Error("JobResultMySQLStorage", "Batch insert data failed", sqlStr, err)
 	}
 }
 
 // Serve 启动定期同步数据库服务
-func (s *JobResultPGStorage) Serve(ctx context.Context) {
+func (s *JobResultMySQLStorage) Serve(ctx context.Context) {
 	ticker := time.NewTicker(3 * time.Second)
 	defer ticker.Stop()
 
