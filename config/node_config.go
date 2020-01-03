@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/huajiao-tv/peppercron/logic"
@@ -48,27 +49,43 @@ type Setting struct {
 }
 
 func getRemoteConfig(ctx context.Context) error {
+	timer := time.NewTimer(time.Minute * 5)
+	defer timer.Stop()
+
 	setting := Setting{
 		SettingGlobal: SettingGlobal{},
-		SettingNode: SettingNode{},
+		SettingNode:   SettingNode{},
 	}
 
-	nodeKey := fmt.Sprintf(logic.NodeConfig, NodeID)
+	for {
+		select {
+		case <-timer.C:
+			goto NodeConf
+		default:
+		}
 
-	// get global conf
-	resp, err := Storage.Get(ctx, logic.GlobalConfig)
-	if err != nil {
-		return err
-	}
-	if len(resp.Kvs) > 0 {
+		// get global conf
+		resp, err := Storage.Get(ctx, logic.GlobalConfig)
+		if err != nil {
+			return err
+		}
+		if len(resp.Kvs) == 0 {
+			if os.Getenv("DOCKER_ENV") == "" {
+				goto NodeConf
+			}
+			time.Sleep(time.Second * 10)
+			continue
+		}
 		err = json.Unmarshal(resp.Kvs[0].Value, &setting.SettingGlobal)
 		if err != nil {
 			return err
 		}
+		break
 	}
 
+NodeConf:
 	// get node conf
-	resp, err = Storage.Get(ctx, nodeKey)
+	resp, err := Storage.Get(ctx, fmt.Sprintf(logic.NodeConfig, NodeID))
 	if err != nil {
 		return err
 	}
