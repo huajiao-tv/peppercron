@@ -16,7 +16,7 @@ const (
 
 func signalHandler(llist ...net.Listener) {
 	ch := make(chan os.Signal, 10)
-	signal.Notify(ch, syscall.SIGINT, syscall.SIGUSR2)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR2)
 	for {
 		sig := <-ch
 		switch sig {
